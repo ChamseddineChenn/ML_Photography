@@ -1,12 +1,17 @@
+import { readFile } from "fs/promises";
+import path from "path";
 import { ImageResponse } from "next/og";
-import { SITE, siteUrl } from "@/lib/metadata";
+import { SITE } from "@/lib/metadata";
+
+const HERO_PATH = path.join(process.cwd(), "public", "assets", "hero", "hero-8-dusk.jpg");
 
 export const alt = SITE.title;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function Image() {
-  const heroSrc = new URL("/assets/hero/hero-8-dusk.jpg", siteUrl()).toString();
+  const buffer = await readFile(HERO_PATH);
+  const heroSrc = `data:image/jpeg;base64,${buffer.toString("base64")}`;
 
   return new ImageResponse(
     (

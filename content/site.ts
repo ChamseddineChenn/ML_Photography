@@ -26,7 +26,7 @@ export const ABOUT_PAGE = {
 };
 
 export const CONTACT = {
-  mailto: "hello@example.com",
+  mailto: "contact@maleklarif.com",
   endpoint: "",
 };
 

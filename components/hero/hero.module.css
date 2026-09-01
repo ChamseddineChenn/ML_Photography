@@ -1,0 +1,545 @@
+/* Timed cinematic hero. Band entrances and scrims ported from the measured static build. */
+
+.root {
+  position: relative;
+  height: 100svh;
+  min-height: 560px;
+  overflow: hidden;
+  background: var(--canvas-deep);
+}
+
+/* ---------- light gate ---------- */
+
+.gate {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper);
+  color: var(--ink);
+  text-align: center;
+  padding: var(--gut);
+  transition: opacity 0.7s var(--ease), visibility 0.7s;
+}
+
+.gateHidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.gateIn {
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.gateMark {
+  width: 64px;
+  color: var(--accent);
+  margin-bottom: 0.4rem;
+}
+
+.gateMark svg {
+  width: 100%;
+  height: auto;
+}
+
+.gateKicker {
+  color: var(--accent);
+  margin: 0;
+}
+
+.gateName {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: clamp(2.4rem, 7vw, 4.6rem);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  margin: 0;
+  color: var(--ink);
+}
+
+.gateSub {
+  color: var(--ink-muted);
+  margin: 0 0 1rem;
+  max-width: 36ch;
+  font-size: 1.02rem;
+  line-height: 1.55;
+}
+
+.gateActions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+}
+
+.startBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 48px;
+  padding: 0.9em 1.9em;
+  border-radius: 999px;
+  border: 0;
+  background: var(--accent);
+  color: var(--canvas);
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.34s var(--ease), transform 0.34s var(--ease),
+    box-shadow 0.34s var(--ease), opacity 0.34s var(--ease);
+}
+
+.startBtn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 34px rgba(221, 125, 59, 0.28);
+}
+
+.startBtn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.ring {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  color: var(--canvas);
+}
+
+.ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.skipQuiet {
+  background: transparent;
+  border: 0;
+  color: var(--ink-muted);
+  font-family: var(--body);
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0.4em 0.6em;
+}
+
+.skipQuiet:hover {
+  color: var(--ink);
+}
+
+/* ---------- stage (playing) ---------- */
+
+.stageFrozen .bands,
+.stageFrozen .playSkip,
+.stageFrozen .progress {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stageFrozen .scrim {
+  opacity: 0;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+}
+
+.layers {
+  position: absolute;
+  inset: 0;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  background-color: var(--tint);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: translateZ(0) scale(1.06);
+  opacity: 0;
+}
+
+.layerOff {
+  visibility: hidden;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 120% 90% at 50% 45%,
+    rgba(12, 10, 21, 0) 35%,
+    rgba(12, 10, 21, 0.62) 100%
+  );
+}
+
+.bands {
+  position: absolute;
+  inset: 0;
+}
+
+.band {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  padding: calc(9vh + 46px) var(--gut) 9vh;
+  text-shadow: var(--tshadow);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.band .btn {
+  text-shadow: none;
+}
+
+.band::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: calc(0.25 + 0.75 * var(--k, 1));
+  background: linear-gradient(
+    to bottom,
+    rgba(5, 4, 12, var(--sa, 0.72)) 0%,
+    rgba(5, 4, 12, calc(var(--sa, 0.72) * 0.92)) 30%,
+    rgba(5, 4, 12, calc(var(--sa, 0.72) * 0.46)) 52%,
+    rgba(5, 4, 12, 0) 74%
+  );
+}
+
+.band[data-side="left"]::before {
+  background: linear-gradient(
+    to right,
+    rgba(5, 4, 12, var(--sa, 0.8)) 0%,
+    rgba(5, 4, 12, calc(var(--sa, 0.8) * 0.9)) 36%,
+    rgba(5, 4, 12, calc(var(--sa, 0.8) * 0.44)) 58%,
+    rgba(5, 4, 12, 0) 80%
+  );
+}
+
+.bandSettle::before {
+  background: linear-gradient(
+    to top,
+    rgba(5, 4, 12, var(--sa, 0.74)) 0%,
+    rgba(5, 4, 12, calc(var(--sa, 0.74) * 0.9)) 32%,
+    rgba(5, 4, 12, calc(var(--sa, 0.74) * 0.44)) 56%,
+    rgba(5, 4, 12, 0) 78%
+  );
+}
+
+.bandIn {
+  position: relative;
+  max-width: min(1360px, 100%);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.bandTop {
+  align-self: flex-start;
+}
+
+.bandLeft {
+  align-self: center;
+}
+
+.bandBottom {
+  align-self: flex-end;
+  text-align: center;
+}
+
+.sub {
+  color: var(--text-primary);
+  opacity: 0.9;
+  font-size: clamp(1rem, 1.35vw, 1.28rem);
+  margin: 1.1rem 0 0;
+  max-width: 44ch;
+}
+
+.bandBottom .sub {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.bandBottom :global(.kicker) {
+  margin-bottom: 1.4rem;
+}
+
+.cta {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 2rem 0 0;
+  pointer-events: auto;
+}
+
+.w {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.em {
+  /* punch emphasis flags via sibling selectors below */
+}
+
+.c {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+.sp {
+  display: inline-block;
+  width: 0.28em;
+}
+
+.stack {
+  position: relative;
+  display: block;
+}
+
+.soft {
+  filter: blur(12px);
+  opacity: calc(1 - var(--k, 0));
+}
+
+.sharp {
+  position: absolute;
+  inset: 0;
+  opacity: var(--k, 0);
+}
+
+.hName {
+  /* settle headline glow hooked below */
+}
+
+/* blur */
+.band[data-anim="blur"] .sub {
+  opacity: calc(0.9 * clamp(0, (var(--k, 0) - 0.25) * 2.4, 1));
+}
+
+/* drift */
+.band[data-anim="drift"] .w {
+  --kc: clamp(0, (var(--k, 0) - var(--th, 0)) * 2.8, 1);
+  opacity: var(--kc);
+  transform: translateY(calc((1 - var(--kc)) * -26px));
+}
+
+/* punch */
+.band[data-anim="punch"] .w {
+  --kc: clamp(0, (var(--k, 0) - var(--th, 0)) * 3, 1);
+  --ks: clamp(0, (var(--k, 0) - var(--th, 0) - var(--sd, 0.1)) * var(--ss, 3.2), 1);
+  opacity: var(--kc);
+  transform: scale(
+    calc(0.62 + (0.38 + var(--ov, 0.12)) * var(--kc) - var(--ov, 0.12) * var(--ks))
+  );
+}
+.band[data-anim="punch"] .em {
+  --ov: 0.24;
+  --sd: 0.16;
+  --ss: 2.6;
+}
+
+/* depth */
+.band[data-anim="depth"] .w {
+  --kc: clamp(0, (var(--k, 0) - var(--th, 0)) * 2.6, 1);
+  opacity: var(--kc);
+  transform: scale(calc(0.8 + 0.2 * var(--kc)));
+}
+
+/* scatter */
+.band[data-anim="scatter"] .c {
+  --kc: clamp(0, (var(--k, 0) - var(--th, 0)) * 2.6, 1);
+  opacity: var(--kc);
+  transform: translate(
+      calc((1 - var(--kc)) * var(--jx, 0px)),
+      calc((1 - var(--kc)) * var(--jy, 0px))
+    )
+    rotate(calc((1 - var(--kc)) * var(--jr, 0deg)));
+}
+.band[data-anim="scatter"] .sub {
+  opacity: calc(0.9 * clamp(0, (var(--k, 0) - 0.5) * 3, 1));
+}
+
+/* rise */
+.band[data-anim="rise"] .w {
+  --kc: clamp(0, (var(--k, 0) - var(--th, 0)) * 2.4, 1);
+  opacity: var(--kc);
+  transform: translateY(calc((1 - var(--kc)) * 32px));
+}
+.band[data-anim="rise"] :global(.kicker) {
+  opacity: clamp(0, var(--k, 0) * 3, 1);
+}
+.band[data-anim="rise"] .sub {
+  --ks: clamp(0, (var(--k, 0) - 0.66) * 4, 1);
+  opacity: calc(0.9 * var(--ks));
+  transform: translateY(calc((1 - var(--ks)) * 14px));
+}
+.band[data-anim="rise"] .cta {
+  --kb: clamp(0, (var(--k, 0) - 0.78) * 5, 1);
+  opacity: var(--kb);
+  transform: translateY(calc((1 - var(--kb)) * 14px));
+}
+.band[data-anim="rise"] .hName {
+  filter: drop-shadow(0 0 34px rgba(221, 125, 59, calc(0.22 * var(--k, 0))));
+}
+
+.playSkip {
+  position: absolute;
+  top: calc(1rem + env(safe-area-inset-top, 0px));
+  right: var(--gut);
+  z-index: 8;
+  background: rgba(8, 6, 18, 0.55);
+  border: 1px solid rgba(96, 90, 126, 0.35);
+  color: var(--text-primary);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 999px;
+  padding: 0.55em 1.1em;
+  font-family: var(--body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.3s var(--ease), color 0.3s var(--ease);
+}
+
+.playSkip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(166, 156, 168, 0.16);
+  z-index: 7;
+  pointer-events: none;
+}
+
+.progressFill {
+  height: 100%;
+  width: calc(var(--p, 0) * 100%);
+  background: var(--accent);
+  box-shadow: 0 0 12px rgba(221, 125, 59, 0.45);
+}
+
+/* ---------- rested ---------- */
+
+.rested {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+}
+
+.restedFadeIn {
+  animation: restedIn 0.45s var(--ease) both;
+}
+
+@keyframes restedIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.restedPoster {
+  position: absolute;
+  inset: 0;
+  background-color: #3d302f;
+  background-size: cover;
+  background-position: center 55%;
+  background-repeat: no-repeat;
+}
+
+.restedScrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgba(5, 4, 12, 0.88) 0%,
+    rgba(5, 4, 12, 0.62) 28%,
+    rgba(5, 4, 12, 0.28) 55%,
+    rgba(5, 4, 12, 0.08) 100%
+  );
+}
+
+.restedIn {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0 var(--gut) clamp(4rem, 10vh, 7rem);
+  padding-top: clamp(5rem, 14vh, 9rem);
+  text-align: center;
+  text-shadow: var(--tshadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.restedTextVeil {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 0;
+  height: min(58vh, 520px);
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 90% 100% at 50% 80%,
+    rgba(5, 4, 12, 0.74) 0%,
+    rgba(5, 4, 12, 0.48) 38%,
+    rgba(5, 4, 12, 0.22) 58%,
+    transparent 76%
+  );
+}
+
+.restedKicker {
+  margin-bottom: 0.85rem;
+  color: var(--text-primary);
+  opacity: 0.95;
+}
+
+.restedIn .sub {
+  color: var(--text-primary);
+  opacity: 0.9;
+  font-size: clamp(1rem, 1.35vw, 1.28rem);
+  margin: 1.1rem 0 0;
+  max-width: 44ch;
+}
+
+.restedReplay {
+  margin-top: 1.6rem;
+  pointer-events: auto;
+}
+
+@media (max-width: 720px) {
+  .band {
+    padding: calc(8vh + 40px) var(--gut) 7vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gate {
+    transition: none;
+  }
+}

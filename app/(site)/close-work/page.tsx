@@ -1,14 +1,15 @@
-import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { CLOSE_WORK } from "@/content/gallery";
 import { PageHero, PageMain } from "@/components/pages/PageShell";
+import { buildMetadata } from "@/lib/metadata";
 import styles from "@/components/pages/page.module.css";
 
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: "Close work",
   description: "Small things, same light. Macro and still life by Malek Larif.",
-};
+  path: "/close-work",
+});
 
 export default function CloseWorkPage() {
   return (

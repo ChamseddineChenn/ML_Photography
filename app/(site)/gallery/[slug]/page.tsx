@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { allShotSlugs, getShot } from "@/content/gallery";
 import { PageMain } from "@/components/pages/PageShell";
+import { buildMetadata } from "@/lib/metadata";
 import styles from "@/components/pages/page.module.css";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -12,15 +12,21 @@ export function generateStaticParams() {
   return allShotSlugs().map((slug) => ({ slug }));
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
   const shot = getShot(slug);
-  if (!shot) return { title: "Photograph" };
-  return {
+  if (!shot) return buildMetadata({ title: "Photograph", path: `/gallery/${slug}` });
+  return buildMetadata({
     title: shot.title,
     description: shot.story ?? shot.alt,
-    openGraph: { images: [shot.src] },
-  };
+    path: `/gallery/${slug}`,
+    image: {
+      url: shot.src,
+      width: shot.width,
+      height: shot.height,
+      alt: shot.alt,
+    },
+  });
 }
 
 export default async function GalleryDetailPage({ params }: Props) {

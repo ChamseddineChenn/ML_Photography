@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { PageHero, PageMain } from "@/components/pages/PageShell";
 import { FaqList } from "@/components/pages/FaqList";
+import { buildMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: "Questions",
   description: "Returns, dark prints, files, shipping. Straight answers.",
-};
+  path: "/faq",
+});
 
 export default function FaqPage() {
   return (

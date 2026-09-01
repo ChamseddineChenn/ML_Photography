@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CONTACT_PAGE } from "@/content/site";
 import { PageHero, PageMain } from "@/components/pages/PageShell";
 import { ContactForm } from "@/components/pages/ContactForm";
+import { buildMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: "Write to me",
   description: CONTACT_PAGE.lede,
-};
+  path: "/contact",
+});
 
 export default function ContactPage() {
   return (

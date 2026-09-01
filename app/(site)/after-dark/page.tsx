@@ -1,15 +1,16 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { AfterDark } from "@/components/sections/AfterDark";
 import { PageHero, PageMain } from "@/components/pages/PageShell";
 import styles from "@/components/pages/page.module.css";
 import { NIGHT } from "@/content/gallery";
+import { buildMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: "After dark",
   description:
     "Blue hour, night, lightning. What is left after the light goes, by Malek Larif.",
-};
+  path: "/after-dark",
+});
 
 export default function AfterDarkPage() {
   return (

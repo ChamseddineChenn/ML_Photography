@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { allEntrySlugs, getEntry } from "@/content/journal";
 import { PageMain } from "@/components/pages/PageShell";
+import { buildMetadata } from "@/lib/metadata";
 import styles from "@/components/pages/page.module.css";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -12,15 +12,21 @@ export function generateStaticParams() {
   return allEntrySlugs().map((slug) => ({ slug }));
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
   const entry = getEntry(slug);
-  if (!entry) return { title: "Journal" };
-  return {
+  if (!entry) return buildMetadata({ title: "Journal", path: `/journal/${slug}` });
+  return buildMetadata({
     title: entry.title,
     description: entry.paragraphs[0],
-    openGraph: { images: [entry.src] },
-  };
+    path: `/journal/${slug}`,
+    image: {
+      url: entry.src,
+      width: entry.width,
+      height: entry.height,
+      alt: entry.alt,
+    },
+  });
 }
 
 export default async function JournalEntryPage({ params }: Props) {

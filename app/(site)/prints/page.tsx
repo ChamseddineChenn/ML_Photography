@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PageHero, PageMain } from "@/components/pages/PageShell";
 import { PrintsShop } from "@/components/pages/PrintsShop";
+import { buildMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: "Prints",
   description:
     "Signed archival prints and full resolution digital files, straight from Malek Larif.",
-};
+  path: "/prints",
+});
 
 export default function PrintsPage() {
   return (

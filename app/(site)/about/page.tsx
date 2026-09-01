@@ -1,14 +1,15 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Mark } from "@/components/ui/Mark";
 import { ABOUT_PAGE } from "@/content/site";
 import { PageHero, PageMain } from "@/components/pages/PageShell";
+import { buildMetadata } from "@/lib/metadata";
 import styles from "@/components/pages/page.module.css";
 
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: "About",
   description: ABOUT_PAGE.lede,
-};
+  path: "/about",
+});
 
 export default function AboutPage() {
   return (

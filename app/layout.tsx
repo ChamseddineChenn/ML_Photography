@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Instrument_Sans, Martian_Mono } from "next/font/google";
+import { buildMetadata, SITE, siteUrl } from "@/lib/metadata";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -23,25 +24,15 @@ const martian = Martian_Mono({
   display: "swap",
 });
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+const social = buildMetadata({ path: "/" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(siteUrl()),
   title: {
-    default: "ML Photography, Malek Larif, prints of the last light",
-    template: "%s · ML Photography",
+    default: SITE.title,
+    template: `%s · ${SITE.name}`,
   },
-  description:
-    "Photographs of the last light by Malek Larif. Signed archival prints and full resolution digital files, sent by the person who took them.",
-  openGraph: {
-    type: "website",
-    title: "ML Photography, Malek Larif",
-    description:
-      "Photographs of the last light. Signed archival prints and full resolution digital files.",
-    images: ["/assets/hero/hero-8-dusk.jpg"],
-  },
+  ...social,
   icons: {
     icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 32'%3E%3Crect width='48' height='32' fill='%230C0A15'/%3E%3Cg fill='none' stroke='%23DD7D3B' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 26 L8 8 L14 19 L20 8 L23 26'/%3E%3Cpath d='M28 8 L28 26 L44 26'/%3E%3C/g%3E%3C/svg%3E",
   },

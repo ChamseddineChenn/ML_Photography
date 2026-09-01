@@ -1,14 +1,15 @@
-import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { JOURNAL, JOURNAL_ENTRIES } from "@/content/journal";
 import { PageHero, PageMain } from "@/components/pages/PageShell";
+import { buildMetadata } from "@/lib/metadata";
 import styles from "@/components/pages/page.module.css";
 
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: "Journal",
   description: JOURNAL.lede,
-};
+  path: "/journal",
+});
 
 export default function JournalIndexPage() {
   return (

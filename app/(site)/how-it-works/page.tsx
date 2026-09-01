@@ -1,14 +1,15 @@
-import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { STEPS } from "@/content/prints";
 import { PageHero, PageMain } from "@/components/pages/PageShell";
+import { buildMetadata } from "@/lib/metadata";
 import styles from "@/components/pages/page.module.css";
 
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: "How it works",
   description: "Three steps from photograph to wall.",
-};
+  path: "/how-it-works",
+});
 
 export default function HowItWorksPage() {
   return (

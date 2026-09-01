@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
 import { GALLERY } from "@/content/gallery";
 import { PageHero, PageMain } from "@/components/pages/PageShell";
 import { ShotWall } from "@/components/gallery/ShotWall";
+import { buildMetadata } from "@/lib/metadata";
 import styles from "@/components/pages/page.module.css";
 
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: "Gallery",
   description: "The full wall of photographs by Malek Larif.",
-};
+  path: "/gallery",
+});
 
 export default function GalleryPage() {
   return (

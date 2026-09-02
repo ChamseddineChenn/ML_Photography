@@ -61,6 +61,8 @@ Keep email records (MX, SPF, DMARC, autodiscover) unchanged.
    - `NEXT_PUBLIC_SITE_URL` = `https://maleklarif.com` (or `https://www.maleklarif.com` after `www` SSL is valid)
 4. **Redeploy** after changing the env var (values are baked in at build time).
 
+**If `https://www.maleklarif.com` shows a certificate warning** after fixing the `www` CNAME: open **Domains → `www.maleklarif.com` → Refresh** (or remove and re-add the domain). Let's Encrypt re-issues once DNS points at `cname.vercel-dns.com`; allow a few minutes.
+
 ### Social previews (Facebook, iMessage, Slack)
 
 - `http://maleklarif.com` redirects to HTTPS automatically.

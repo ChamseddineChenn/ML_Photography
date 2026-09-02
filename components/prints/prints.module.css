@@ -9,29 +9,103 @@
 }
 
 .photoHint {
-  margin: 0 0 1.4rem;
+  margin: 0.85rem 0 0;
   color: var(--text-secondary);
   max-width: 42ch;
   line-height: 1.55;
+  text-align: center;
 }
 
 .preview {
-  margin-bottom: 1.6rem;
+  margin: 0 auto 1.6rem;
+  overflow-anchor: none;
+  max-width: min(920px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.previewFrame {
-  position: relative;
-  overflow: hidden;
+.previewStage {
+  width: 100%;
+  height: min(72vh, 680px);
+  min-height: 320px;
   border-radius: 3px;
   border: 1px solid var(--hair);
   background: var(--panel);
-  max-width: min(720px, 100%);
+  box-shadow: inset 0 0 0 1px rgba(239, 230, 224, 0.04);
+  padding: clamp(0.65rem, 1.5vw, 0.85rem);
 }
 
-.previewFrame img {
+.previewMat {
+  position: relative;
   width: 100%;
-  height: auto;
+  height: 100%;
+  background: var(--canvas-deep);
+  border: 1px solid var(--hair-strong);
+  padding: clamp(1rem, 3vw, 1.75rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.previewMat::before,
+.previewMat::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  border-color: var(--accent-muted);
+  border-style: solid;
+  opacity: 0.85;
+}
+
+.previewMat::before {
+  top: clamp(0.5rem, 1.5vw, 0.85rem);
+  left: clamp(0.5rem, 1.5vw, 0.85rem);
+  border-width: 1px 0 0 1px;
+}
+
+.previewMat::after {
+  bottom: clamp(0.5rem, 1.5vw, 0.85rem);
+  right: clamp(0.5rem, 1.5vw, 0.85rem);
+  border-width: 0 1px 1px 0;
+}
+
+.previewWindow {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.previewImg {
   display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain;
+}
+
+.previewPlaceholder {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.previewMeta {
+  margin: 0.45rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  text-align: center;
+  max-width: 42ch;
 }
 
 .thumbs {
@@ -65,6 +139,15 @@
   box-shadow: 0 0 0 1px var(--accent-muted);
 }
 
+.thumb:focus {
+  outline: none;
+}
+
+.thumb:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .thumb img {
   width: 100%;
   height: auto;
@@ -92,6 +175,11 @@
 }
 
 @media (max-width: 600px) {
+  .previewStage {
+    min-height: 280px;
+    height: min(58vh, 520px);
+  }
+
   .thumbs {
     grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
   }

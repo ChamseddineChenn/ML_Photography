@@ -1,19 +1,29 @@
 "use client";
 
+import type { RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BEATS } from "@/content/beats";
+import { beatImgFromLayer, decodeBeatImg, isBeatImgReady } from "@/lib/heroLoad";
+import {
+  needsLandscapeHandoff,
+  tryLockLandscape,
+  unlockOrientation,
+} from "@/lib/viewportMode";
 
-export type HeroPhase = "gate" | "playing" | "rested";
+export type HeroPhase = "gate" | "awaitingLandscape" | "playing" | "rested";
 
 export type CinematicApi = {
   phase: HeroPhase;
   stageFrozen: boolean;
   loadProgress: number;
   ready: boolean;
+  loadFailed: boolean;
   reducedMotion: boolean;
   start: () => void;
   skip: () => void;
   complete: () => void;
+  cancelLandscape: () => void;
+  enterPlaying: () => void;
 };
 
 function prefersReducedMotion() {
@@ -22,18 +32,24 @@ function prefersReducedMotion() {
 }
 
 const STAGE_UNFREEZE_MS = 450;
+const RETURN_HOLD_MS = 200;
+const RETRY_MS = 4000;
 
 /**
- * Phase machine only. Playback timing lives in HeroStage and writes the DOM
- * directly — setState every frame was thrashing the whole tree.
+ * Phase machine. Beat load progress tracks DOM imgs in HeroLayers (strict decode).
  */
-export function useCinematic(): CinematicApi {
+export function useCinematic(
+  layerRefs: RefObject<(HTMLDivElement | null)[]>
+): CinematicApi {
   const [phase, setPhase] = useState<HeroPhase>("gate");
   const [stageFrozen, setStageFrozen] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [ready, setReady] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const unfreezeRef = useRef<number | null>(null);
+  const returnRef = useRef<number | null>(null);
+  const decodedRef = useRef<boolean[]>(BEATS.map(() => false));
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -42,7 +58,9 @@ export function useCinematic(): CinematicApi {
       setReducedMotion(on);
       if (on) {
         setStageFrozen(false);
-        setPhase((p) => (p === "playing" || p === "gate" ? "rested" : p));
+        setPhase((p) =>
+          p === "playing" || p === "gate" || p === "awaitingLandscape" ? "rested" : p
+        );
       }
     };
     apply();
@@ -52,31 +70,84 @@ export function useCinematic(): CinematicApi {
 
   useEffect(() => {
     let cancelled = false;
-    let done = 0;
-    const total = BEATS.length;
+    const cleanups: (() => void)[] = [];
 
-    BEATS.forEach((beat) => {
-      const img = new Image();
-      const step = () => {
-        if (cancelled) return;
-        done += 1;
-        setLoadProgress(done / total);
-        if (done >= total) setReady(true);
+    const imgs = (): HTMLImageElement[] => {
+      const out: HTMLImageElement[] = [];
+      for (let i = 0; i < BEATS.length; i++) {
+        const img = beatImgFromLayer(layerRefs.current?.[i] ?? null);
+        if (img) out[i] = img;
+      }
+      return out;
+    };
+
+    const updateProgress = () => {
+      if (cancelled) return;
+      const decoded = decodedRef.current.filter(Boolean).length;
+      setLoadProgress(decoded / BEATS.length);
+      setReady(decoded >= BEATS.length);
+      setLoadFailed(false);
+    };
+
+    const markDecoded = async (index: number, img: HTMLImageElement) => {
+      if (cancelled || decodedRef.current[index]) return;
+      if (!isBeatImgReady(img)) return;
+      await decodeBeatImg(img);
+      if (cancelled) return;
+      decodedRef.current[index] = true;
+      updateProgress();
+    };
+
+    const onError = (index: number, img: HTMLImageElement) => {
+      if (cancelled) return;
+      if (!decodedRef.current.every(Boolean)) setLoadFailed(true);
+      const retry = () => {
+        if (cancelled || decodedRef.current[index]) return;
+        const sep = img.src.includes("?") ? "&" : "?";
+        img.src = `${BEATS[index].src}${sep}retry=${Date.now()}`;
       };
-      img.onload = step;
-      img.onerror = step;
-      img.src = beat.src;
-    });
+      window.setTimeout(retry, RETRY_MS);
+    };
 
-    const watchdog = window.setTimeout(() => {
-      if (!cancelled) setReady(true);
-    }, 20000);
+    const wire = () => {
+      cleanups.forEach((fn) => fn());
+      cleanups.length = 0;
+
+      for (let i = 0; i < BEATS.length; i++) {
+        const img = beatImgFromLayer(layerRefs.current?.[i] ?? null);
+        if (!img) continue;
+
+        if (decodedRef.current[i] || isBeatImgReady(img)) {
+          void markDecoded(i, img);
+        }
+
+        const onLoad = () => void markDecoded(i, img);
+        const onErr = () => onError(i, img);
+        img.addEventListener("load", onLoad);
+        img.addEventListener("error", onErr);
+        cleanups.push(() => {
+          img.removeEventListener("load", onLoad);
+          img.removeEventListener("error", onErr);
+        });
+      }
+
+      updateProgress();
+    };
+
+    wire();
+    const poll = window.setInterval(() => {
+      if (cancelled || ready) return;
+      const haveAll = BEATS.every((_, i) => beatImgFromLayer(layerRefs.current?.[i] ?? null));
+      if (haveAll) wire();
+      else updateProgress();
+    }, 200);
 
     return () => {
       cancelled = true;
-      clearTimeout(watchdog);
+      clearInterval(poll);
+      cleanups.forEach((fn) => fn());
     };
-  }, []);
+  }, [layerRefs, ready]);
 
   const clearUnfreeze = useCallback(() => {
     if (unfreezeRef.current !== null) {
@@ -85,32 +156,64 @@ export function useCinematic(): CinematicApi {
     }
   }, []);
 
-  const skip = useCallback(() => {
+  const clearReturn = useCallback(() => {
+    if (returnRef.current !== null) {
+      window.clearTimeout(returnRef.current);
+      returnRef.current = null;
+    }
+  }, []);
+
+  const goRested = useCallback(() => {
     clearUnfreeze();
+    clearReturn();
+    unlockOrientation();
     setStageFrozen(false);
     setPhase("rested");
-  }, [clearUnfreeze]);
+  }, [clearReturn, clearUnfreeze]);
+
+  const skip = useCallback(() => {
+    goRested();
+  }, [goRested]);
 
   const complete = useCallback(() => {
     clearUnfreeze();
+    clearReturn();
+    unlockOrientation();
     setPhase("rested");
     setStageFrozen(true);
-    unfreezeRef.current = window.setTimeout(() => {
+    returnRef.current = window.setTimeout(() => {
       setStageFrozen(false);
-      unfreezeRef.current = null;
-    }, STAGE_UNFREEZE_MS);
-  }, [clearUnfreeze]);
+      returnRef.current = null;
+    }, STAGE_UNFREEZE_MS + RETURN_HOLD_MS);
+  }, [clearReturn, clearUnfreeze]);
 
   const start = useCallback(() => {
+    if (!ready) return;
     if (prefersReducedMotion()) {
-      setStageFrozen(false);
-      setPhase("rested");
+      goRested();
       return;
     }
     clearUnfreeze();
     setStageFrozen(false);
+    if (needsLandscapeHandoff()) {
+      tryLockLandscape();
+      setPhase("awaitingLandscape");
+      return;
+    }
     setPhase("playing");
-  }, [clearUnfreeze]);
+  }, [clearUnfreeze, goRested, ready]);
+
+  const cancelLandscape = useCallback(() => {
+    unlockOrientation();
+    setPhase("gate");
+  }, []);
+
+  const enterPlaying = useCallback(() => {
+    if (!ready) return;
+    clearUnfreeze();
+    setStageFrozen(false);
+    setPhase("playing");
+  }, [clearUnfreeze, ready]);
 
   useEffect(() => {
     if (phase !== "playing") return;
@@ -121,16 +224,25 @@ export function useCinematic(): CinematicApi {
     return () => window.removeEventListener("keydown", onKey);
   }, [phase, skip]);
 
-  useEffect(() => () => clearUnfreeze(), [clearUnfreeze]);
+  useEffect(
+    () => () => {
+      clearUnfreeze();
+      clearReturn();
+    },
+    [clearReturn, clearUnfreeze]
+  );
 
   return {
     phase,
     stageFrozen,
     loadProgress,
     ready,
+    loadFailed,
     reducedMotion,
     start,
     skip,
     complete,
+    cancelLandscape,
+    enterPlaying,
   };
 }

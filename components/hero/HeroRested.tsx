@@ -1,31 +1,40 @@
 "use client";
 
 import { BEATS, RESTED_BEAT_INDEX, SETTLE_COPY } from "@/content/beats";
+import { getBeatObjectPosition } from "@/lib/beatFraming";
+import { HERO_PORTRAIT_SRC, isCoarseMobile, type ViewportMode } from "@/lib/viewportMode";
 import styles from "./hero.module.css";
 
 type Props = {
   visible: boolean;
   fadingIn?: boolean;
+  viewportMode: ViewportMode;
   onReplay: () => void;
 };
 
-export function HeroRested({ visible, fadingIn = false, onReplay }: Props) {
+export function HeroRested({ visible, fadingIn = false, viewportMode, onReplay }: Props) {
   if (!visible) return null;
   const beat = BEATS[RESTED_BEAT_INDEX];
+  const usePortrait = isCoarseMobile();
+  const posterSrc = usePortrait ? HERO_PORTRAIT_SRC : beat.src;
+  const posterPosition = usePortrait
+    ? "center 55%"
+    : getBeatObjectPosition(beat, viewportMode);
 
   return (
     <div
       className={`${styles.rested}${fadingIn ? ` ${styles.restedFadeIn}` : ""}`}
     >
-      <div
-        className={styles.restedPoster}
-        aria-hidden="true"
-        style={{
-          backgroundImage: `url("${beat.src}")`,
-          backgroundPosition: beat.objectPosition ?? "center",
-          backgroundColor: beat.tint,
-        }}
-      />
+      <div className={styles.restedPoster} aria-hidden="true" style={{ backgroundColor: beat.tint }}>
+        <img
+          className={styles.restedPosterImg}
+          src={posterSrc}
+          alt=""
+          decoding="async"
+          draggable={false}
+          style={{ objectPosition: posterPosition }}
+        />
+      </div>
       <div className={styles.restedScrim} aria-hidden="true" />
       <div className={styles.restedTextVeil} aria-hidden="true" />
       <div className={styles.restedIn}>

@@ -1,19 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { RefObject } from "react";
 import {
   BANDS,
   BEATS,
-  BEAT_CENTRES,
+  beatCrossfadeMids,
   CINEMATIC_DURATION_MS,
   XFADE,
 } from "@/content/beats";
+import { getBeatKenBurns, getBeatObjectPosition } from "@/lib/beatFraming";
+import { beatImgFromLayer, isBeatImgReady, waitForBeatZero } from "@/lib/heroLoad";
+import type { ViewportMode } from "@/lib/viewportMode";
 import styles from "./hero.module.css";
 import { clamp, smoothstep, splitHeadline, type SplitResult } from "./splitText";
 
 type Props = {
   visible: boolean;
   frozen?: boolean;
+  viewportMode: ViewportMode;
+  layerRefs: RefObject<(HTMLDivElement | null)[]>;
   onDone: () => void;
   onSkip: () => void;
 };
@@ -98,13 +104,29 @@ function WordSpans({
   );
 }
 
-function layerState(progress: number) {
-  const mids = BEAT_CENTRES.map((_, i) =>
-    i === 0 ? 0 : (BEAT_CENTRES[i - 1] + BEAT_CENTRES[i]) / 2
-  );
-  const ops = BEATS.map((_, i) =>
+function imgReadyAt(
+  layerRefs: RefObject<(HTMLDivElement | null)[]>,
+  index: number
+): boolean {
+  return isBeatImgReady(beatImgFromLayer(layerRefs.current?.[index] ?? null));
+}
+
+function layerState(
+  progress: number,
+  viewportMode: ViewportMode,
+  layerRefs: RefObject<(HTMLDivElement | null)[]>
+) {
+  const mids = beatCrossfadeMids();
+  let ops = BEATS.map((_, i) =>
     i === 0 ? 1 : smoothstep(progress, mids[i] - XFADE, mids[i] + XFADE)
   );
+
+  for (let i = 0; i < ops.length; i++) {
+    if (!imgReadyAt(layerRefs, i) && ops[i] > 0.001) {
+      if (i > 0) ops[i - 1] = Math.max(ops[i - 1], ops[i]);
+      ops[i] = 0;
+    }
+  }
 
   return BEATS.map((beat, i) => {
     const op = ops[i];
@@ -112,13 +134,14 @@ function layerState(progress: number) {
     const lo = i === 0 ? 0 : mids[i] - XFADE;
     const hi = i === BEATS.length - 1 ? 1 : mids[i + 1] + XFADE;
     const t = clamp((progress - lo) / (hi - lo), 0, 1);
-    const k = beat.kb;
+    const k = getBeatKenBurns(beat, viewportMode);
     const s = k.s0 + (k.s1 - k.s0) * t;
     const x = k.x0 + (k.x1 - k.x0) * t;
     const y = k.y0 + (k.y1 - k.y0) * t;
     return {
       op,
       hidden,
+      objectPosition: getBeatObjectPosition(beat, viewportMode),
       transform: `translateZ(0) translate(${x.toFixed(2)}%,${y.toFixed(2)}%) scale(${s.toFixed(3)})`,
     };
   });
@@ -126,7 +149,7 @@ function layerState(progress: number) {
 
 function bandState(progress: number) {
   return BANDS.map((b) => {
-    const f = Math.min(0.028, (b.b - b.a) / 3);
+    const f = Math.min(0.014, (b.b - b.a) / 3);
     let op: number;
     if (b.first) op = 1 - smoothstep(progress, b.b - f, b.b);
     else if (b.last) op = smoothstep(progress, b.a, b.a + f);
@@ -135,28 +158,46 @@ function bandState(progress: number) {
         smoothstep(progress, b.a, b.a + f) *
         (1 - smoothstep(progress, b.b - f, b.b));
 
-    const ramp = Math.min(0.03, (b.b - b.a) * 0.35);
+    const ramp = Math.min(0.02, (b.b - b.a) * 0.35);
     const k = clamp((progress - b.a) / ramp, 0, 1);
     return { op, k };
   });
 }
 
-export function HeroStage({ visible, frozen = false, onDone, onSkip }: Props) {
-  const layerRefs = useRef<(HTMLDivElement | null)[]>([]);
+export function HeroStage({
+  visible,
+  frozen = false,
+  viewportMode,
+  layerRefs,
+  onDone,
+  onSkip,
+}: Props) {
   const bandRefs = useRef<(HTMLDivElement | null)[]>([]);
   const progressRef = useRef<HTMLDivElement | null>(null);
+  const skipRef = useRef<HTMLButtonElement | null>(null);
   const onDoneRef = useRef(onDone);
+  const viewportRef = useRef(viewportMode);
+  const startTimeRef = useRef<number | null>(null);
+  const progressCacheRef = useRef(0);
+  const [preparing, setPreparing] = useState(false);
   onDoneRef.current = onDone;
+  viewportRef.current = viewportMode;
 
   const paint = (progress: number) => {
-    const layers = layerState(progress);
+    progressCacheRef.current = progress;
+    const mode = viewportRef.current;
+    const layers = layerState(progress, mode, layerRefs);
     const bands = bandState(progress);
     layers.forEach((L, i) => {
-      const el = layerRefs.current[i];
+      const el = layerRefs.current?.[i];
       if (!el) return;
       el.style.opacity = String(L.op);
-      el.style.transform = L.transform;
       el.classList.toggle(styles.layerOff, L.hidden);
+      const img = el.querySelector("img");
+      if (img instanceof HTMLImageElement) {
+        img.style.transform = L.transform;
+        img.style.objectPosition = L.objectPosition;
+      }
     });
     bands.forEach((B, i) => {
       const el = bandRefs.current[i];
@@ -171,22 +212,47 @@ export function HeroStage({ visible, frozen = false, onDone, onSkip }: Props) {
   };
 
   useEffect(() => {
+    paint(progressCacheRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewportMode]);
+
+  useEffect(() => {
     if (!visible || frozen) return;
-    paint(0);
-    const start = performance.now();
+
+    let cancelled = false;
     let raf = 0;
-    const tick = (now: number) => {
-      const p = Math.min(1, (now - start) / CINEMATIC_DURATION_MS);
-      paint(p);
-      if (p >= 1) {
-        paint(1);
-        onDoneRef.current();
-        return;
-      }
+
+    const run = async () => {
+      setPreparing(true);
+      await waitForBeatZero((i) => layerRefs.current?.[i] ?? null, 3000);
+      if (cancelled) return;
+      setPreparing(false);
+      skipRef.current?.focus({ preventScroll: true });
+      startTimeRef.current = performance.now();
+      paint(0);
+
+      const tick = (now: number) => {
+        if (cancelled) return;
+        const start = startTimeRef.current ?? now;
+        const p = Math.min(1, (now - start) / CINEMATIC_DURATION_MS);
+        paint(p);
+        if (p >= 1) {
+          paint(1);
+          onDoneRef.current();
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+
+    void run();
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      setPreparing(false);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, frozen]);
 
@@ -199,22 +265,11 @@ export function HeroStage({ visible, frozen = false, onDone, onSkip }: Props) {
 
   return (
     <div className={`${styles.stage}${frozen ? ` ${styles.stageFrozen}` : ""}`}>
-      <div className={styles.layers} aria-hidden="true">
-        {BEATS.map((beat, i) => (
-          <div
-            key={beat.src}
-            ref={(el) => {
-              layerRefs.current[i] = el;
-            }}
-            className={styles.layer}
-            style={{
-              ["--tint" as string]: beat.tint,
-              backgroundImage: `url("${beat.src}")`,
-              opacity: i === 0 ? 1 : 0,
-            }}
-          />
-        ))}
-      </div>
+      {preparing ? (
+        <div className={styles.preparing} role="status">
+          Preparing frames…
+        </div>
+      ) : null}
 
       <div className={styles.scrim} aria-hidden="true" />
 
@@ -268,7 +323,12 @@ export function HeroStage({ visible, frozen = false, onDone, onSkip }: Props) {
         })}
       </div>
 
-      <button type="button" className={styles.playSkip} onClick={onSkip}>
+      <button
+        type="button"
+        className={styles.playSkip}
+        ref={skipRef}
+        onClick={onSkip}
+      >
         Skip
       </button>
 

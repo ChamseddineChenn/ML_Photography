@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  type HTMLAttributes,
-  type ReactNode,
-} from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
 import Image from "next/image";
 import { GALLERY } from "@/content/gallery";
 import { PRINTS, PROMISES, type PrintProduct } from "@/content/prints";
@@ -91,8 +85,32 @@ type Props = {
 
 export function PrintsContent({ selectedSlug, onSelectPhoto, onBuy }: Props) {
   const apertureRef = useRef<HTMLDivElement>(null);
+  const preserveScrollY = useRef<number | null>(null);
   const [pendingProduct, setPendingProduct] = useState<string | null>(null);
   const selected = GALLERY.find((s) => s.slug === selectedSlug);
+
+  useLayoutEffect(() => {
+    const y = preserveScrollY.current;
+    if (y === null) return;
+
+    const restore = () => window.scrollTo(0, y);
+    restore();
+    const raf = requestAnimationFrame(restore);
+    const t = window.setTimeout(() => {
+      restore();
+      preserveScrollY.current = null;
+    }, 200);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(t);
+    };
+  }, [selectedSlug]);
+
+  const selectPhoto = (slug: string) => {
+    preserveScrollY.current = window.scrollY;
+    onSelectPhoto(slug);
+  };
 
   useEffect(() => {
     const el = apertureRef.current;
@@ -121,27 +139,45 @@ export function PrintsContent({ selectedSlug, onSelectPhoto, onBuy }: Props) {
     <>
       <div className={styles.photoBlock}>
         <p className={`kicker mono ${styles.photoKicker}`}>Your photograph</p>
-        {selected ? (
-          <div className={styles.preview}>
-            <div className={styles.previewFrame}>
-              <Image
-                src={selected.src}
-                alt={selected.alt}
-                width={selected.width}
-                height={selected.height}
-                sizes="(max-width: 900px) 100vw, min(720px, 70vw)"
-                priority
-              />
+        <div className={styles.preview}>
+          <div className={styles.previewStage}>
+            <div className={styles.previewMat}>
+              <div className={styles.previewWindow}>
+                {selected ? (
+                  <Image
+                    src={selected.src}
+                    alt={selected.alt}
+                    width={selected.width}
+                    height={selected.height}
+                    sizes="(max-width: 900px) 100vw, min(920px, 72vw)"
+                    className={styles.previewImg}
+                    priority
+                    onLoad={() => {
+                      const y = preserveScrollY.current;
+                      if (y !== null) window.scrollTo(0, y);
+                    }}
+                  />
+                ) : (
+                  <p className={styles.previewPlaceholder}>Pick a photograph</p>
+                )}
+              </div>
             </div>
-            <p className="picked mono">
-              SELECTED: <span>{selected.title}</span>
-            </p>
           </div>
-        ) : (
-          <p className={styles.photoHint}>
-            Pick one from the grid below, or choose a photograph in the gallery first.
-          </p>
-        )}
+          {selected ? (
+            <>
+              <p className="picked mono">
+                SELECTED: <span>{selected.title}</span>
+              </p>
+              {selected.place ? (
+                <p className={styles.previewMeta}>{selected.place}</p>
+              ) : null}
+            </>
+          ) : (
+            <p className={styles.photoHint}>
+              Pick one from the grid below, or choose a photograph in the gallery first.
+            </p>
+          )}
+        </div>
 
         <div className={styles.thumbs} role="listbox" aria-label="Choose a photograph">
           {GALLERY.map((shot) => {
@@ -153,7 +189,8 @@ export function PrintsContent({ selectedSlug, onSelectPhoto, onBuy }: Props) {
                 role="option"
                 aria-selected={active}
                 className={`${styles.thumb}${active ? ` ${styles.thumbActive}` : ""}`}
-                onClick={() => onSelectPhoto(shot.slug)}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => selectPhoto(shot.slug)}
               >
                 <Image
                   src={shot.src}

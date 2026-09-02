@@ -5,18 +5,29 @@ import styles from "./hero.module.css";
 type Props = {
   ready: boolean;
   loadProgress: number;
+  loadFailed?: boolean;
   onStart: () => void;
   onSkip: () => void;
   hidden: boolean;
 };
 
-export function HeroGate({ ready, loadProgress, onStart, onSkip, hidden }: Props) {
+export function HeroGate({
+  ready,
+  loadProgress,
+  loadFailed = false,
+  onStart,
+  onSkip,
+  hidden,
+}: Props) {
   const offset = Math.round(126 * (1 - loadProgress));
+  const loadingLabel = loadFailed
+    ? "Still loading the frames…"
+    : "Loading the frames";
 
   return (
     <div
       className={`${styles.gate} ${hidden ? styles.gateHidden : ""}`}
-      aria-hidden={hidden}
+      {...(hidden ? { inert: true } : {})}
     >
       <div className={styles.gateIn}>
         <div className={styles.gateMark} aria-hidden="true">
@@ -61,7 +72,7 @@ export function HeroGate({ ready, loadProgress, onStart, onSkip, hidden }: Props
                 />
               </svg>
             </span>
-            {ready ? "Start the experience" : "Loading the frames"}
+            {ready ? "Start the experience" : loadingLabel}
           </button>
           <button type="button" className={styles.skipQuiet} onClick={onSkip}>
             Skip to the work

@@ -50,7 +50,7 @@ export function PrintsShop() {
   };
 
   return (
-    <section className="sec prints" aria-label="Print shop">
+    <section className="prints prints-page" aria-label="Print shop">
       <PrintsContent
         selectedSlug={selectedSlug}
         onSelectPhoto={onSelectPhoto}

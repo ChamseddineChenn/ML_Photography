@@ -32,6 +32,15 @@ export function Nav() {
   }, [pathname]);
 
   useEffect(() => {
+    if (menuOpen) {
+      document.body.classList.add("scroll-locked");
+    } else {
+      document.body.classList.remove("scroll-locked");
+    }
+    return () => document.body.classList.remove("scroll-locked");
+  }, [menuOpen]);
+
+  useEffect(() => {
     if (!isHome) {
       setOn(true);
       return;
@@ -44,7 +53,9 @@ export function Nav() {
       const hero = document.querySelector("[data-hero-phase]");
       const phase = hero?.getAttribute("data-hero-phase");
       const threshold =
-        phase === "playing" || phase === "gate"
+        phase === "playing" ||
+        phase === "gate" ||
+        phase === "awaitingLandscape"
           ? window.innerHeight * 0.15
           : window.innerHeight * 0.35;
       const next = window.scrollY > threshold || phase === "rested";

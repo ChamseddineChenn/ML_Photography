@@ -13,6 +13,8 @@ import { Spine } from "@/components/ui/Spine";
 export default function Home() {
   return (
     <>
+      <link rel="preload" as="image" href="/assets/hero/hero-1-field.jpg" fetchPriority="high" />
+      <link rel="preload" as="image" href="/assets/hero/hero-2-falls.jpg" />
       <Spine />
       <main id="main" tabIndex={-1}>
         <Hero />

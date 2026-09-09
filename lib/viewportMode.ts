@@ -27,25 +27,6 @@ export function getViewportMode(): ViewportMode {
   return isLandscape() ? "mobileLandscape" : "mobilePortrait";
 }
 
-/** Portrait phone that must rotate before cinematic playback. */
-export function needsLandscapeHandoff(): boolean {
-  return getViewportMode() === "mobilePortrait";
-}
-
-export function tryLockLandscape(): void {
-  if (typeof screen === "undefined") return;
-  const o = screen.orientation as ScreenOrientation & {
-    lock?: (mode: string) => Promise<void>;
-  };
-  o.lock?.("landscape").catch(() => {});
-}
-
-export function unlockOrientation(): void {
-  if (typeof screen === "undefined") return;
-  const o = screen.orientation as ScreenOrientation & { unlock?: () => void };
-  o.unlock?.();
-}
-
 /** Debounced viewport mode — stable across orientation changes without remounting hero. */
 export function useViewportMode(onChange?: (mode: ViewportMode) => void) {
   const [mode, setMode] = useState<ViewportMode>("desktop");

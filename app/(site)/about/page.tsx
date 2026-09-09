@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mark } from "@/components/ui/Mark";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { ABOUT_PAGE } from "@/content/site";
 import { PageHero, PageMain } from "@/components/pages/PageShell";
 import { buildMetadata } from "@/lib/metadata";
@@ -21,7 +21,7 @@ export default function AboutPage() {
       />
       <div className="about-grid wrap" style={{ marginTop: 0 }}>
         <div className="portrait" aria-hidden="true">
-          <Mark />
+          <BrandLogo variant="light" className="about-logo" />
           <span className="mono">PORTRAIT COMING</span>
         </div>
         <div className="about-text">

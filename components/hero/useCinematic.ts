@@ -4,13 +4,8 @@ import type { RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BEATS } from "@/content/beats";
 import { beatImgFromLayer, decodeBeatImg, isBeatImgReady } from "@/lib/heroLoad";
-import {
-  needsLandscapeHandoff,
-  tryLockLandscape,
-  unlockOrientation,
-} from "@/lib/viewportMode";
 
-export type HeroPhase = "gate" | "awaitingLandscape" | "playing" | "rested";
+export type HeroPhase = "gate" | "playing" | "rested";
 
 export type CinematicApi = {
   phase: HeroPhase;
@@ -22,8 +17,6 @@ export type CinematicApi = {
   start: () => void;
   skip: () => void;
   complete: () => void;
-  cancelLandscape: () => void;
-  enterPlaying: () => void;
 };
 
 function prefersReducedMotion() {
@@ -58,9 +51,7 @@ export function useCinematic(
       setReducedMotion(on);
       if (on) {
         setStageFrozen(false);
-        setPhase((p) =>
-          p === "playing" || p === "gate" || p === "awaitingLandscape" ? "rested" : p
-        );
+        setPhase((p) => (p === "playing" || p === "gate" ? "rested" : p));
       }
     };
     apply();
@@ -71,15 +62,6 @@ export function useCinematic(
   useEffect(() => {
     let cancelled = false;
     const cleanups: (() => void)[] = [];
-
-    const imgs = (): HTMLImageElement[] => {
-      const out: HTMLImageElement[] = [];
-      for (let i = 0; i < BEATS.length; i++) {
-        const img = beatImgFromLayer(layerRefs.current?.[i] ?? null);
-        if (img) out[i] = img;
-      }
-      return out;
-    };
 
     const updateProgress = () => {
       if (cancelled) return;
@@ -166,7 +148,6 @@ export function useCinematic(
   const goRested = useCallback(() => {
     clearUnfreeze();
     clearReturn();
-    unlockOrientation();
     setStageFrozen(false);
     setPhase("rested");
   }, [clearReturn, clearUnfreeze]);
@@ -178,7 +159,6 @@ export function useCinematic(
   const complete = useCallback(() => {
     clearUnfreeze();
     clearReturn();
-    unlockOrientation();
     setPhase("rested");
     setStageFrozen(true);
     returnRef.current = window.setTimeout(() => {
@@ -195,25 +175,8 @@ export function useCinematic(
     }
     clearUnfreeze();
     setStageFrozen(false);
-    if (needsLandscapeHandoff()) {
-      tryLockLandscape();
-      setPhase("awaitingLandscape");
-      return;
-    }
     setPhase("playing");
   }, [clearUnfreeze, goRested, ready]);
-
-  const cancelLandscape = useCallback(() => {
-    unlockOrientation();
-    setPhase("gate");
-  }, []);
-
-  const enterPlaying = useCallback(() => {
-    if (!ready) return;
-    clearUnfreeze();
-    setStageFrozen(false);
-    setPhase("playing");
-  }, [clearUnfreeze, ready]);
 
   useEffect(() => {
     if (phase !== "playing") return;
@@ -242,7 +205,5 @@ export function useCinematic(
     start,
     skip,
     complete,
-    cancelLandscape,
-    enterPlaying,
   };
 }

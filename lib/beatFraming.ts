@@ -1,4 +1,5 @@
 import type { Beat, KenBurns } from "@/content/beats";
+import { BEATS } from "@/content/beats";
 import type { ViewportMode } from "@/lib/viewportMode";
 
 /** Scale Ken Burns down for smaller / narrower viewports. */
@@ -15,6 +16,19 @@ function softenKb(kb: KenBurns, factor = 0.55): KenBurns {
   };
 }
 
+/** Alternating horizontal pan so portrait phones see across each frame. */
+function portraitPanKb(beatIndex: number): KenBurns {
+  const leftToRight = beatIndex % 2 === 0;
+  return {
+    s0: 1.14,
+    s1: 1.14,
+    x0: leftToRight ? -8 : 8,
+    x1: leftToRight ? 8 : -8,
+    y0: 0,
+    y1: 0,
+  };
+}
+
 export function getBeatObjectPosition(beat: Beat, mode: ViewportMode): string {
   if (mode === "mobilePortrait") {
     return beat.objectPositionPortrait ?? beat.objectPosition ?? "center";
@@ -25,8 +39,21 @@ export function getBeatObjectPosition(beat: Beat, mode: ViewportMode): string {
   return beat.objectPositionLandscape ?? beat.objectPosition ?? "center";
 }
 
-export function getBeatKenBurns(beat: Beat, mode: ViewportMode): KenBurns {
+export function getBeatKenBurns(
+  beat: Beat,
+  mode: ViewportMode,
+  beatIndex?: number
+): KenBurns {
   if (mode === "desktop") return beat.kb;
+
+  const index =
+    beatIndex ?? BEATS.findIndex((b) => b.src === beat.src);
+
+  // Portrait play (and mid-play landscape rotate): alternating L↔R pan.
+  if (mode === "mobilePortrait" || mode === "mobileLandscape") {
+    if (index >= 0) return portraitPanKb(index);
+  }
+
   if (beat.kbMobile) return beat.kbMobile;
   return softenKb(beat.kb, mode === "mobileLandscape" ? 0.7 : 0.5);
 }

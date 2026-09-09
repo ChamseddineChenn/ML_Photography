@@ -1,5 +1,5 @@
 import { ABOUT } from "@/content/site";
-import { Mark } from "@/components/ui/Mark";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { Reveal, Rule } from "@/components/ui/Reveal";
 
 export function About() {
@@ -8,7 +8,7 @@ export function About() {
       <Rule />
       <div className="about-grid">
         <div className="portrait reveal in" aria-hidden="true">
-          <Mark />
+          <BrandLogo variant="light" className="about-logo" />
           <span className="mono">PORTRAIT COMING</span>
         </div>
         <div className="about-text">

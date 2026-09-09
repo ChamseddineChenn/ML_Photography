@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { BEATS, RESTED_BEAT_INDEX, SETTLE_COPY } from "@/content/beats";
 import { getBeatObjectPosition } from "@/lib/beatFraming";
 import { HERO_PORTRAIT_SRC, isCoarseMobile, type ViewportMode } from "@/lib/viewportMode";
@@ -38,7 +39,9 @@ export function HeroRested({ visible, fadingIn = false, viewportMode, onReplay }
       <div className={styles.restedScrim} aria-hidden="true" />
       <div className={styles.restedTextVeil} aria-hidden="true" />
       <div className={styles.restedIn}>
-        <p className={`kicker mono ${styles.restedKicker}`}>{SETTLE_COPY.kicker}</p>
+        <div className={styles.restedLogo}>
+          <BrandLogo variant="light" />
+        </div>
         <h1 className="h-name">{SETTLE_COPY.name}</h1>
         <p className="sub">{SETTLE_COPY.sub}</p>
         <p className={`cta ${styles.cta}`}>

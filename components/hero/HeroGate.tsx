@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import styles from "./hero.module.css";
 
 type Props = {
@@ -30,22 +31,9 @@ export function HeroGate({
       {...(hidden ? { inert: true } : {})}
     >
       <div className={styles.gateIn}>
-        <div className={styles.gateMark} aria-hidden="true">
-          <svg viewBox="0 0 48 32">
-            <g
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M5 26 L8 8 L14 19 L20 8 L23 26" />
-              <path d="M28 8 L28 26 L44 26" />
-            </g>
-          </svg>
+        <div className={styles.gateLogo}>
+          <BrandLogo variant="dark" priority />
         </div>
-        <p className={`mono ${styles.gateKicker}`}>ML Photography</p>
-        <h1 className={styles.gateName}>Malek Larif</h1>
         <p className={styles.gateSub}>
           Photographs of the last light. Start when you are ready, and the day
           will fall on its own.

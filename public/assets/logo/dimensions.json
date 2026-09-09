@@ -1,0 +1,14 @@
+{
+  "lockup": {
+    "width": 527,
+    "height": 148
+  },
+  "mark": {
+    "size": 512
+  },
+  "icons": {
+    "icon": 192,
+    "apple": 180,
+    "pwa": [192, 512]
+  }
+}

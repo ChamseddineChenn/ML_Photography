@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mark } from "./Mark";
+import { BrandLogo } from "./BrandLogo";
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -7,7 +7,7 @@ export function Footer() {
     <footer className="foot">
       <div className="foot-in">
         <Link className="mark mark-foot" href="/" aria-label="Back to the top">
-          <Mark />
+          <BrandLogo variant="light" />
         </Link>
         <p className="foot-line">
           All photographs by Malek Larif. Please do not reproduce them without asking.

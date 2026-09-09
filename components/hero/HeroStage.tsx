@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import {
   BANDS,
   BEATS,
@@ -134,7 +135,7 @@ function layerState(
     const lo = i === 0 ? 0 : mids[i] - XFADE;
     const hi = i === BEATS.length - 1 ? 1 : mids[i + 1] + XFADE;
     const t = clamp((progress - lo) / (hi - lo), 0, 1);
-    const k = getBeatKenBurns(beat, viewportMode);
+    const k = getBeatKenBurns(beat, viewportMode, i);
     const s = k.s0 + (k.s1 - k.s0) * t;
     const x = k.x0 + (k.x1 - k.x0) * t;
     const y = k.y0 + (k.y1 - k.y0) * t;
@@ -297,7 +298,13 @@ export function HeroStage({
               }}
             >
               <div className={`${styles.bandIn} ${align}`}>
-                {b.kicker ? <p className="kicker mono">{b.kicker}</p> : null}
+                {isSettle ? (
+                  <div className={styles.settleLogo}>
+                    <BrandLogo variant="light" />
+                  </div>
+                ) : b.kicker ? (
+                  <p className="kicker mono">{b.kicker}</p>
+                ) : null}
                 <WordSpans
                   text={b.headline}
                   seed={1337 + i * 977}

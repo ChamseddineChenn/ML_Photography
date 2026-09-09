@@ -40,30 +40,15 @@
   gap: 1.1rem;
 }
 
-.gateMark {
-  width: 64px;
-  color: var(--accent);
-  margin-bottom: 0.4rem;
+.gateLogo {
+  width: min(280px, 72vw);
+  margin: 0 auto 0.6rem;
 }
 
-.gateMark svg {
+.gateLogo img {
   width: 100%;
   height: auto;
-}
-
-.gateKicker {
-  color: var(--accent);
-  margin: 0;
-}
-
-.gateName {
-  font-family: var(--display);
-  font-weight: 300;
-  font-size: clamp(2.4rem, 7vw, 4.6rem);
-  line-height: 0.98;
-  letter-spacing: -0.03em;
-  margin: 0;
-  color: var(--ink);
+  display: block;
 }
 
 .gateSub {
@@ -560,10 +545,30 @@
   );
 }
 
-.restedKicker {
-  margin-bottom: 0.85rem;
-  color: var(--text-primary);
-  opacity: 0.95;
+.restedLogo {
+  width: min(240px, 68vw);
+  margin: 0 auto 1.1rem;
+}
+
+.restedLogo img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.settleLogo {
+  width: min(220px, 64vw);
+  margin: 0 auto 1rem;
+}
+
+.settleLogo img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.band[data-anim="rise"] .settleLogo {
+  opacity: clamp(0, var(--k, 0) * 3, 1);
 }
 
 .restedIn .sub {
@@ -577,118 +582,6 @@
 .restedReplay {
   margin-top: 1.6rem;
   pointer-events: auto;
-}
-
-/* ---------- rotate interstitial (post-Start, portrait mobile) ---------- */
-
-.orientPrompt {
-  position: absolute;
-  inset: 0;
-  z-index: 6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--gut);
-  background: rgba(8, 6, 18, 0.88);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  animation: orientIn 0.45s var(--ease) both;
-}
-
-@keyframes orientIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.orientIn {
-  max-width: 360px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.orientIcon {
-  width: 72px;
-  color: var(--accent);
-  animation: orientWiggle 2.4s var(--ease) infinite;
-}
-
-.orientIcon svg {
-  width: 100%;
-  height: auto;
-}
-
-@keyframes orientWiggle {
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-  35% {
-    transform: rotate(-90deg);
-  }
-  55% {
-    transform: rotate(-90deg);
-  }
-}
-
-.orientTitle {
-  font-family: var(--display);
-  font-weight: 300;
-  font-size: clamp(1.5rem, 5vw, 2rem);
-  line-height: 1.1;
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.orientSub {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-  line-height: 1.5;
-  max-width: 28ch;
-}
-
-.orientBack {
-  margin-top: 0.5rem;
-  background: transparent;
-  border: 0;
-  color: var(--text-secondary);
-  font-family: var(--body);
-  font-size: 0.9rem;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  padding: 0.5em 0.75em;
-}
-
-.orientBack:hover {
-  color: var(--text-primary);
-}
-
-.orientNudge {
-  position: absolute;
-  top: calc(0.75rem + env(safe-area-inset-top, 0px));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9;
-  max-width: calc(100% - 2 * var(--gut));
-  padding: 0.55em 1em;
-  border-radius: 999px;
-  background: rgba(8, 6, 18, 0.72);
-  border: 1px solid rgba(96, 90, 126, 0.35);
-  color: var(--text-primary);
-  font-size: 0.78rem;
-  text-align: center;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  pointer-events: none;
-  animation: orientIn 0.35s var(--ease) both;
 }
 
 @media (max-width: 720px) {

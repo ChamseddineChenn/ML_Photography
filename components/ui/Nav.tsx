@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Mark } from "./Mark";
+import { BrandLogo } from "./BrandLogo";
 
 const LINKS = [
   { href: "/gallery", label: "Gallery" },
@@ -53,9 +53,7 @@ export function Nav() {
       const hero = document.querySelector("[data-hero-phase]");
       const phase = hero?.getAttribute("data-hero-phase");
       const threshold =
-        phase === "playing" ||
-        phase === "gate" ||
-        phase === "awaitingLandscape"
+        phase === "playing" || phase === "gate"
           ? window.innerHeight * 0.15
           : window.innerHeight * 0.35;
       const next = window.scrollY > threshold || phase === "rested";
@@ -91,7 +89,7 @@ export function Nav() {
     <>
       <header className={`nav${on ? " on" : ""}`}>
         <Link className="mark" href="/" aria-label="ML Photography, back to the top">
-          <Mark />
+          <BrandLogo variant="light" priority />
         </Link>
         <nav className="nav-links" aria-label="Primary">
           {LINKS.map((l) => (

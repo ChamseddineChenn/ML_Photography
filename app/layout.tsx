@@ -34,7 +34,11 @@ export const metadata: Metadata = {
   },
   ...social,
   icons: {
-    icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 32'%3E%3Crect width='48' height='32' fill='%230C0A15'/%3E%3Cg fill='none' stroke='%23DD7D3B' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 26 L8 8 L14 19 L20 8 L23 26'/%3E%3Cpath d='M28 8 L28 26 L44 26'/%3E%3C/g%3E%3C/svg%3E",
+    icon: [
+      { url: "/icon.png", sizes: "192x192", type: "image/png" },
+      { url: "/assets/logo/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 

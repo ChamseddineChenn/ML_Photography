@@ -23,6 +23,9 @@ type Props = {
   layerRefs: RefObject<(HTMLDivElement | null)[]>;
   onDone: () => void;
   onSkip: () => void;
+  onProgress?: (progress: number) => void;
+  muted?: boolean;
+  onToggleMute?: () => void;
 };
 
 function writeHeroProgress(progress: number) {
@@ -172,16 +175,21 @@ export function HeroStage({
   layerRefs,
   onDone,
   onSkip,
+  onProgress,
+  muted = false,
+  onToggleMute,
 }: Props) {
   const bandRefs = useRef<(HTMLDivElement | null)[]>([]);
   const progressRef = useRef<HTMLDivElement | null>(null);
   const skipRef = useRef<HTMLButtonElement | null>(null);
   const onDoneRef = useRef(onDone);
+  const onProgressRef = useRef(onProgress);
   const viewportRef = useRef(viewportMode);
   const startTimeRef = useRef<number | null>(null);
   const progressCacheRef = useRef(0);
   const [preparing, setPreparing] = useState(false);
   onDoneRef.current = onDone;
+  onProgressRef.current = onProgress;
   viewportRef.current = viewportMode;
 
   const paint = (progress: number) => {
@@ -210,6 +218,7 @@ export function HeroStage({
       progressRef.current.style.setProperty("--p", String(progress));
     }
     writeHeroProgress(progress);
+    onProgressRef.current?.(progress);
   };
 
   useEffect(() => {
@@ -330,14 +339,41 @@ export function HeroStage({
         })}
       </div>
 
-      <button
-        type="button"
-        className={styles.playSkip}
-        ref={skipRef}
-        onClick={onSkip}
-      >
-        Skip
-      </button>
+      <div className={styles.stageChrome}>
+        {onToggleMute ? (
+          <button
+            type="button"
+            className={styles.muteBtn}
+            aria-pressed={muted}
+            aria-label={muted ? "Unmute ambient sound" : "Mute ambient sound"}
+            onClick={onToggleMute}
+          >
+            {muted ? (
+              <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16">
+                <path
+                  fill="currentColor"
+                  d="M4.3 3.3 3 4.6l4.2 4.2H3v6h4l5 4V12.8l5.7 5.7 1.3-1.3L4.3 3.3zM14 4.5v4.7l2.9 2.9c.07-.36.1-.73.1-1.1A5 5 0 0 0 14 4.5zm0 14.2v-2.2l2.1 2.1a6.9 6.9 0 0 1-2.1.1z"
+                />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16">
+                <path
+                  fill="currentColor"
+                  d="M3 9v6h4l5 4V5L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8.1v7.8A4.5 4.5 0 0 0 16.5 12zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"
+                />
+              </svg>
+            )}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className={styles.playSkip}
+          ref={skipRef}
+          onClick={onSkip}
+        >
+          Skip
+        </button>
+      </div>
 
       <div className={styles.progress} aria-hidden="true" ref={progressRef} style={{ ["--p" as string]: 0 }}>
         <div className={styles.progressFill} />

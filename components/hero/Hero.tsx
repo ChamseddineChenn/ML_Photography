@@ -7,6 +7,7 @@ import { HeroRested } from "./HeroRested";
 import { HeroStage } from "./HeroStage";
 import styles from "./hero.module.css";
 import { useCinematic } from "./useCinematic";
+import { useCinematicAmbient } from "./useCinematicAmbient";
 import { useScrollLock } from "./useScrollLock";
 import { useViewportMode } from "@/lib/viewportMode";
 
@@ -14,6 +15,7 @@ export function Hero() {
   const layerRefs = useRef<(HTMLDivElement | null)[]>([]);
   const gateRef = useRef<HTMLDivElement | null>(null);
   const cinematic = useCinematic(layerRefs);
+  const ambient = useCinematicAmbient(cinematic.phase === "playing");
   const viewportMode = useViewportMode();
   const prevPhaseRef = useRef(cinematic.phase);
 
@@ -70,6 +72,9 @@ export function Hero() {
         layerRefs={layerRefs}
         onDone={cinematic.complete}
         onSkip={cinematic.skip}
+        onProgress={ambient.setProgress}
+        muted={ambient.muted}
+        onToggleMute={ambient.toggleMute}
       />
       <HeroRested
         visible={showRested}

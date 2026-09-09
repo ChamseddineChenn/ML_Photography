@@ -3,6 +3,7 @@
 import type { RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BEATS } from "@/content/beats";
+import { HOME_RESTART_EVENT } from "@/lib/goHomeStart";
 import { beatImgFromLayer, decodeBeatImg, isBeatImgReady } from "@/lib/heroLoad";
 
 export type HeroPhase = "gate" | "playing" | "rested";
@@ -151,6 +152,17 @@ export function useCinematic(
     setStageFrozen(false);
     setPhase("playing");
   }, [clearUnfreeze, ready]);
+
+  useEffect(() => {
+    const onRestart = () => {
+      clearUnfreeze();
+      clearReturn();
+      setStageFrozen(false);
+      setPhase("gate");
+    };
+    window.addEventListener(HOME_RESTART_EVENT, onRestart);
+    return () => window.removeEventListener(HOME_RESTART_EVENT, onRestart);
+  }, [clearReturn, clearUnfreeze]);
 
   useEffect(() => {
     if (phase !== "playing") return;

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BrandLogo } from "./BrandLogo";
+import { HomeMark } from "./HomeMark";
 
 const LINKS = [
   { href: "/gallery", label: "Gallery" },
@@ -88,18 +88,7 @@ export function Nav() {
   return (
     <>
       <header className={`nav${on ? " on" : ""}`}>
-        <Link
-          className="mark"
-          href="/"
-          aria-label="ML Photography, restart from the beginning"
-          onClick={(e) => {
-            if (pathname !== "/") return;
-            e.preventDefault();
-            window.location.reload();
-          }}
-        >
-          <BrandLogo variant="light" priority />
-        </Link>
+        <HomeMark className="mark" priority />
         <nav className="nav-links" aria-label="Primary">
           {LINKS.map((l) => (
             <Link key={l.href} href={l.href} aria-current={pathname === l.href ? "page" : undefined}>

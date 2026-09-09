@@ -342,6 +342,7 @@
 .shot figcaption .mono{color:var(--text-secondary);font-size:.55rem}
 .shot-link{position:absolute;inset:0;z-index:2;border-radius:3px}
 .shot-link:focus-visible{outline-offset:-3px}
+.shot.lantern-hold,.shot.lantern-hold .shot-link{touch-action:none}
 
 /* ---------------------------------------------------------- close work -- */
 
@@ -610,13 +611,10 @@
   .reveal{opacity:1;transform:none}
   .rule line{stroke-dashoffset:0}
   .aperture path,.aperture circle{stroke-dashoffset:0}
-  .night-item{opacity:1;transform:none}
   .mote{display:none}
   .shot-img{filter:none;transform:none}
   .shot-media::before{opacity:0}
   .shot-lit,.shot-ring{display:none}
-  .adapt-veil{opacity:.06}
-  .adapt-cap{opacity:1}
   .cue.on{animation:none}
 }
 

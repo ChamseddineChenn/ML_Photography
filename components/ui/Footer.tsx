@@ -1,14 +1,12 @@
 import Link from "next/link";
-import { BrandLogo } from "./BrandLogo";
+import { HomeMark } from "./HomeMark";
 
 export function Footer() {
   const year = new Date().getFullYear();
   return (
     <footer className="foot">
       <div className="foot-in">
-        <Link className="mark mark-foot" href="/" aria-label="Back to the top">
-          <BrandLogo variant="light" />
-        </Link>
+        <HomeMark className="mark mark-foot" />
         <p className="foot-line">
           All photographs by Malek Larif. Please do not reproduce them without asking.
         </p>

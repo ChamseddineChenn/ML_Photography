@@ -78,16 +78,7 @@ export function AfterDark() {
   };
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      doneRef.current = true;
-      paint(1);
-      setDone(true);
-      setLabel("Your eyes are already adjusted.");
-      setHint("Everything below was shot in the same dark.");
-      setGridLit(true);
-    }
     return () => stopRaf();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only reduced-motion gate
   }, []);
 
   const startHold = (e?: React.PointerEvent<HTMLButtonElement>) => {

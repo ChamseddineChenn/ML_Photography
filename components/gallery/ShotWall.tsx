@@ -10,6 +10,10 @@ function clamp(v: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, v));
 }
 
+function reducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 type ShotWallProps = {
   shots: GalleryShot[];
   /** When true, show the turn-all-lights-on control and lantern behaviour. */
@@ -20,29 +24,24 @@ type ShotWallProps = {
 export function ShotWall({ shots, lantern = true, className = "" }: ShotWallProps) {
   const { setPick } = usePick();
   const [allOn, setAllOn] = useState(false);
-  const [fineHover, setFineHover] = useState(true);
+  const [lanternEpoch, setLanternEpoch] = useState(0);
 
-  useEffect(() => {
-    const mq = window.matchMedia("(hover:hover) and (pointer:fine)");
-    const apply = () => {
-      const fine = mq.matches;
-      setFineHover(fine);
-      if (!fine) setAllOn(true);
-    };
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, []);
+  const toggleLights = () => {
+    setAllOn((v) => {
+      if (v) setLanternEpoch((e) => e + 1);
+      return !v;
+    });
+  };
 
   return (
     <div className={className}>
-      {lantern && fineHover ? (
+      {lantern ? (
         <p className="lights-row wrap wrap-wide">
           <button
             className="btn btn-text btn-sm"
             type="button"
             aria-pressed={allOn}
-            onClick={() => setAllOn((v) => !v)}
+            onClick={toggleLights}
           >
             {allOn ? "Put the lights back down" : "Turn all the lights on"}
           </button>
@@ -51,9 +50,9 @@ export function ShotWall({ shots, lantern = true, className = "" }: ShotWallProp
       <div className={`grid${allOn || !lantern ? " allon" : ""}`} id="grid">
         {shots.map((shot) => (
           <Shot
-            key={shot.slug}
+            key={`${shot.slug}-${lanternEpoch}`}
             shot={shot}
-            fineHover={fineHover && lantern}
+            lantern={lantern}
             onPick={setPick}
           />
         ))}
@@ -64,17 +63,21 @@ export function ShotWall({ shots, lantern = true, className = "" }: ShotWallProp
 
 function Shot({
   shot,
-  fineHover,
+  lantern,
   onPick,
 }: {
   shot: GalleryShot;
-  fineHover: boolean;
+  lantern: boolean;
   onPick: (t: string) => void;
 }) {
+  const figRef = useRef<HTMLElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
   const [found, setFound] = useState(false);
   const [lit, setLit] = useState(false);
   const state = useRef({ px: 0, py: 0, want: 0, have: 0, raf: null as number | null });
+  const capturing = useRef(false);
+  const dragged = useRef(false);
+  const startPt = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     const media = mediaRef.current;
@@ -83,9 +86,17 @@ function Shot({
   }, [shot.src]);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setFound(true);
-    }
+    if (reducedMotion()) setFound(true);
+  }, []);
+
+  useEffect(() => {
+    const el = figRef.current;
+    if (!el) return;
+    const block = (e: TouchEvent) => {
+      if (capturing.current) e.preventDefault();
+    };
+    el.addEventListener("touchmove", block, { passive: false });
+    return () => el.removeEventListener("touchmove", block);
   }, []);
 
   const radius = (r: DOMRect) =>
@@ -111,9 +122,10 @@ function Shot({
     if (state.current.raf === null) state.current.raf = requestAnimationFrame(draw);
   };
 
-  const move = (e: React.PointerEvent) => {
-    if (!fineHover || window.matchMedia("(prefers-reduced-motion: reduce)").matches)
-      return;
+  const lanternOk = () => lantern && !reducedMotion();
+
+  const aim = (e: React.PointerEvent) => {
+    if (!lanternOk()) return;
     const media = mediaRef.current;
     if (!media) return;
     const r = media.getBoundingClientRect();
@@ -130,15 +142,69 @@ function Shot({
     kick();
   };
 
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (!lanternOk()) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (e.pointerType === "mouse") return;
+    capturing.current = true;
+    dragged.current = false;
+    startPt.current = { x: e.clientX, y: e.clientY };
+    figRef.current?.classList.add("lantern-hold");
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* older browsers */
+    }
+    aim(e);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!lanternOk()) return;
+    if (e.pointerType === "mouse") {
+      aim(e);
+      return;
+    }
+    if (!capturing.current) return;
+    const dx = e.clientX - startPt.current.x;
+    const dy = e.clientY - startPt.current.y;
+    if (dx * dx + dy * dy > 64) dragged.current = true;
+    aim(e);
+  };
+
+  const endHold = (e: React.PointerEvent) => {
+    if (capturing.current) {
+      capturing.current = false;
+      figRef.current?.classList.remove("lantern-hold");
+      try {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+      } catch {
+        /* ignore */
+      }
+      state.current.want = 0;
+      kick();
+    }
+  };
+
+  const onPointerLeave = () => {
+    if (capturing.current) return;
+    state.current.want = 0;
+    kick();
+  };
+
   return (
     <figure
+      ref={figRef}
       className={`shot${lit ? " lit" : ""}${found ? " found" : ""}`}
-      onPointerMove={move}
-      onPointerEnter={move}
-      onPointerLeave={() => {
-        state.current.want = 0;
-        kick();
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endHold}
+      onPointerCancel={endHold}
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") aim(e);
       }}
+      onPointerLeave={onPointerLeave}
     >
       <div className="shot-media" ref={mediaRef}>
         <Image
@@ -159,10 +225,16 @@ function Shot({
       <Link
         className="shot-link"
         href={`/gallery/${shot.slug}`}
-        onClick={() => onPick(shot.title)}
-        onFocus={() => {
-          if (!fineHover || window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+        onClick={(e) => {
+          if (dragged.current) {
+            e.preventDefault();
+            dragged.current = false;
             return;
+          }
+          onPick(shot.title);
+        }}
+        onFocus={() => {
+          if (!lanternOk()) return;
           const media = mediaRef.current;
           if (!media) return;
           const r = media.getBoundingClientRect();

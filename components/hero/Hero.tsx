@@ -19,6 +19,11 @@ export function Hero() {
   const viewportMode = useViewportMode();
   const prevPhaseRef = useRef(cinematic.phase);
 
+  const startExperience = () => {
+    ambient.unlock();
+    cinematic.start();
+  };
+
   const lockScroll = cinematic.phase === "playing";
   useScrollLock(lockScroll);
 
@@ -57,7 +62,7 @@ export function Hero() {
           ready={cinematic.ready}
           loadProgress={cinematic.loadProgress}
           loadFailed={cinematic.loadFailed}
-          onStart={cinematic.start}
+          onStart={startExperience}
           onSkip={cinematic.skip}
           hidden={!showGate}
         />
@@ -78,7 +83,7 @@ export function Hero() {
         visible={showRested}
         fadingIn={cinematic.stageFrozen}
         viewportMode={viewportMode}
-        onReplay={cinematic.start}
+        onReplay={startExperience}
       />
     </section>
   );

@@ -43,19 +43,39 @@ function writeMuted(muted: boolean) {
   }
 }
 
+type BeatNode = {
+  gain: GainNode;
+  source: MediaElementAudioSourceNode;
+};
+
+type Graph = {
+  ctx: AudioContext;
+  master: GainNode;
+  beats: (BeatNode | null)[];
+};
+
 type Api = {
   muted: boolean;
   toggleMute: () => void;
   setProgress: (p: number) => void;
+  unlock: () => void;
 };
+
+function AudioCtx(): typeof AudioContext | null {
+  if (typeof window === "undefined") return null;
+  return window.AudioContext ??
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext ??
+    null;
+}
 
 /**
  * Soft-crossfaded ambient beds locked to cinematic progress.
- * Starts when `active` becomes true (Start click unlocks audio).
+ * Gains go through Web Audio — HTMLAudio.volume is a no-op on iOS.
  */
 export function useCinematicAmbient(active: boolean): Api {
   const [muted, setMuted] = useState(false);
   const audiosRef = useRef<(HTMLAudioElement | null)[]>([]);
+  const graphRef = useRef<Graph | null>(null);
   const masterRef = useRef(AMBIENT_MASTER_GAIN);
   const mutedRef = useRef(false);
   const progressRef = useRef(0);
@@ -73,7 +93,12 @@ export function useCinematicAmbient(active: boolean): Api {
       const a = new Audio(src);
       a.preload = "auto";
       a.loop = true;
-      a.volume = 0;
+      a.crossOrigin = "anonymous";
+      try {
+        a.volume = 0;
+      } catch {
+        /* iOS volume is read-only */
+      }
       return a;
     });
     audiosRef.current = audios;
@@ -84,21 +109,89 @@ export function useCinematicAmbient(active: boolean): Api {
         a.src = "";
       });
       audiosRef.current = [];
+      const graph = graphRef.current;
+      graphRef.current = null;
+      if (graph) {
+        try {
+          graph.master.disconnect();
+          graph.beats.forEach((b) => {
+            try {
+              b?.gain.disconnect();
+              b?.source.disconnect();
+            } catch {
+              /* already closed */
+            }
+          });
+          void graph.ctx.close();
+        } catch {
+          /* ignore */
+        }
+      }
     };
+  }, []);
+
+  const ensureGraph = useCallback((): Graph | null => {
+    if (graphRef.current) {
+      if (graphRef.current.ctx.state === "suspended") {
+        void graphRef.current.ctx.resume();
+      }
+      return graphRef.current;
+    }
+    const Ctor = AudioCtx();
+    if (!Ctor || audiosRef.current.length === 0) return null;
+    try {
+      const ctx = new Ctor();
+      const master = ctx.createGain();
+      master.gain.value = 0;
+      master.connect(ctx.destination);
+      const beats = audiosRef.current.map((a) => {
+        if (!a) return null;
+        try {
+          const source = ctx.createMediaElementSource(a);
+          const gain = ctx.createGain();
+          gain.gain.value = 0;
+          source.connect(gain);
+          gain.connect(master);
+          return { gain, source };
+        } catch {
+          return null;
+        }
+      });
+      const graph = { ctx, master, beats };
+      graphRef.current = graph;
+      void ctx.resume();
+      return graph;
+    } catch {
+      return null;
+    }
   }, []);
 
   const applyVolumes = useCallback(() => {
     const gains = beatGains(progressRef.current);
-    const master = masterRef.current * fadeMasterRef.current;
-    const silent = mutedRef.current;
+    const masterAmt =
+      masterRef.current * fadeMasterRef.current * (mutedRef.current ? 0 : 1);
+    const graph = graphRef.current;
+    if (graph) {
+      graph.master.gain.value = masterAmt;
+      graph.beats.forEach((b, i) => {
+        if (!b) return;
+        b.gain.gain.value = Math.min(1, Math.max(0, gains[i] * BEAT_AMBIENT_GAIN[i]));
+      });
+    }
     audiosRef.current.forEach((a, i) => {
       if (!a) return;
-      const g = gains[i] * BEAT_AMBIENT_GAIN[i] * master;
-      a.volume = silent ? 0 : Math.min(1, Math.max(0, g));
+      a.muted = mutedRef.current;
+      if (graph) return;
+      try {
+        const g = gains[i] * BEAT_AMBIENT_GAIN[i] * masterAmt;
+        a.volume = Math.min(1, Math.max(0, g));
+      } catch {
+        /* iOS */
+      }
     });
   }, []);
 
-  const ensurePlaying = useCallback(async () => {
+  const syncPlayback = useCallback(async () => {
     const gains = beatGains(progressRef.current);
     await Promise.all(
       audiosRef.current.map(async (a, i) => {
@@ -109,18 +202,31 @@ export function useCinematicAmbient(active: boolean): Api {
               a.currentTime = 0;
               await a.play();
             } catch {
-              /* autoplay blocked — Start should have unlocked */
+              /* autoplay blocked — unlock() should have opened the context */
             }
+          }
+        } else if (!a.paused) {
+          a.pause();
+          try {
+            a.currentTime = 0;
+          } catch {
+            /* ignore */
           }
         }
       })
     );
   }, []);
 
+  const unlock = useCallback(() => {
+    const graph = ensureGraph();
+    if (graph?.ctx.state === "suspended") void graph.ctx.resume();
+    applyVolumes();
+    void syncPlayback();
+  }, [applyVolumes, ensureGraph, syncPlayback]);
+
   useEffect(() => {
     if (!active) {
       startedRef.current = false;
-      // Soft master fade out then pause
       const start = performance.now();
       const from = fadeMasterRef.current;
       let raf = 0;
@@ -139,21 +245,22 @@ export function useCinematicAmbient(active: boolean): Api {
             } catch {
               /* ignore */
             }
-            a.volume = 0;
           });
           fadeMasterRef.current = 0;
+          applyVolumes();
         }
       };
       raf = requestAnimationFrame(tick);
       return () => cancelAnimationFrame(raf);
     }
 
-    // Activate: unlock + fade master in
     startedRef.current = true;
     progressRef.current = 0;
     fadeMasterRef.current = 0;
+    ensureGraph();
     void (async () => {
-      await ensurePlaying();
+      applyVolumes();
+      await syncPlayback();
       const start = performance.now();
       let raf = 0;
       const tick = (now: number) => {
@@ -161,25 +268,24 @@ export function useCinematicAmbient(active: boolean): Api {
         const t = Math.min(1, (now - start) / 600);
         fadeMasterRef.current = t;
         applyVolumes();
-        void ensurePlaying();
+        void syncPlayback();
         if (t < 1) raf = requestAnimationFrame(tick);
       };
       raf = requestAnimationFrame(tick);
     })();
-  }, [active, applyVolumes, ensurePlaying]);
+  }, [active, applyVolumes, ensureGraph, syncPlayback]);
 
   const setProgress = useCallback(
     (p: number) => {
       progressRef.current = p;
-      // Soften end: ramp master down in last ~4% of timeline
       if (p > 0.96) {
         const endFade = 1 - (p - 0.96) / 0.04;
         fadeMasterRef.current = Math.min(fadeMasterRef.current, Math.max(0, endFade));
       }
       applyVolumes();
-      if (startedRef.current) void ensurePlaying();
+      if (startedRef.current) void syncPlayback();
     },
-    [applyVolumes, ensurePlaying]
+    [applyVolumes, syncPlayback]
   );
 
   const toggleMute = useCallback(() => {
@@ -192,5 +298,5 @@ export function useCinematicAmbient(active: boolean): Api {
     });
   }, [applyVolumes]);
 
-  return { muted, toggleMute, setProgress };
+  return { muted, toggleMute, setProgress, unlock };
 }

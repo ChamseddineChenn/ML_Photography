@@ -52,7 +52,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${fraunces.variable} ${instrument.variable} ${martian.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{history.scrollRestoration="manual";scrollTo(0,0)}catch(e){}`,
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

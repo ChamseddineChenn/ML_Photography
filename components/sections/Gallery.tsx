@@ -6,7 +6,6 @@ import { Reveal, Rule } from "@/components/ui/Reveal";
 import { ShotWall } from "@/components/gallery/ShotWall";
 
 export function Gallery() {
-  const [fineHover, setFineHover] = useState(true);
   const [lede, setLede] = useState(
     "Every photograph here sits in the dark until you go looking. Move your cursor across one. Whatever your light finds stays found."
   );
@@ -14,11 +13,9 @@ export function Gallery() {
   useEffect(() => {
     const mq = window.matchMedia("(hover:hover) and (pointer:fine)");
     const apply = () => {
-      const fine = mq.matches;
-      setFineHover(fine);
-      if (!fine) {
+      if (!mq.matches) {
         setLede(
-          "Nine photographs, shown as large as your screen allows. Tap any one of them to open it."
+          "Every photograph here sits in the dark until you go looking. Hold a picture to light it, drag to move the beam, then tap to open it."
         );
       } else {
         setLede(
@@ -45,7 +42,7 @@ export function Gallery() {
           {lede}
         </Reveal>
       </div>
-      <ShotWall shots={GALLERY} lantern={fineHover} />
+      <ShotWall shots={GALLERY} />
     </section>
   );
 }

@@ -13,16 +13,10 @@ export type CinematicApi = {
   loadProgress: number;
   ready: boolean;
   loadFailed: boolean;
-  reducedMotion: boolean;
   start: () => void;
   skip: () => void;
   complete: () => void;
 };
-
-function prefersReducedMotion() {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 const STAGE_UNFREEZE_MS = 450;
 const RETURN_HOLD_MS = 200;
@@ -39,25 +33,9 @@ export function useCinematic(
   const [loadProgress, setLoadProgress] = useState(0);
   const [ready, setReady] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
   const unfreezeRef = useRef<number | null>(null);
   const returnRef = useRef<number | null>(null);
   const decodedRef = useRef<boolean[]>(BEATS.map(() => false));
-
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const apply = () => {
-      const on = mq.matches;
-      setReducedMotion(on);
-      if (on) {
-        setStageFrozen(false);
-        setPhase((p) => (p === "playing" || p === "gate" ? "rested" : p));
-      }
-    };
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -169,14 +147,10 @@ export function useCinematic(
 
   const start = useCallback(() => {
     if (!ready) return;
-    if (prefersReducedMotion()) {
-      goRested();
-      return;
-    }
     clearUnfreeze();
     setStageFrozen(false);
     setPhase("playing");
-  }, [clearUnfreeze, goRested, ready]);
+  }, [clearUnfreeze, ready]);
 
   useEffect(() => {
     if (phase !== "playing") return;
@@ -201,7 +175,6 @@ export function useCinematic(
     loadProgress,
     ready,
     loadFailed,
-    reducedMotion,
     start,
     skip,
     complete,

@@ -22,11 +22,9 @@ export function Hero() {
   const lockScroll = cinematic.phase === "playing";
   useScrollLock(lockScroll);
 
-  const showGate = cinematic.phase === "gate" && !cinematic.reducedMotion;
+  const showGate = cinematic.phase === "gate";
   const showStage = cinematic.phase === "playing" || cinematic.stageFrozen;
-  const showRested =
-    cinematic.phase === "rested" ||
-    (cinematic.phase === "gate" && cinematic.reducedMotion);
+  const showRested = cinematic.phase === "rested";
 
   useEffect(() => {
     const prev = prevPhaseRef.current;

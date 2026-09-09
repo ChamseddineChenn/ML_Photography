@@ -88,7 +88,16 @@ export function Nav() {
   return (
     <>
       <header className={`nav${on ? " on" : ""}`}>
-        <Link className="mark" href="/" aria-label="ML Photography, back to the top">
+        <Link
+          className="mark"
+          href="/"
+          aria-label="ML Photography, restart from the beginning"
+          onClick={(e) => {
+            if (pathname !== "/") return;
+            e.preventDefault();
+            window.location.reload();
+          }}
+        >
           <BrandLogo variant="light" priority />
         </Link>
         <nav className="nav-links" aria-label="Primary">
